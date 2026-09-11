@@ -1,0 +1,363 @@
+PART 1: Project Objective & Problem Statement
+(English)
+Project Title: Daily Expense & Budget CLI Manager Domain: Core Python, Data Persistence &
+CLI Tooling Author: [Your Name / Registration Number]
+Problem Definition
+College students and young professionals often struggle to keep track of their daily minor
+expenditures (food, commute, supplies, entertainment). Existing budgeting applications are
+either bloated with unnecessary GUI features, require mandatory cloud accounts, or consume
+unnecessary system resources.
+Solution Overview
+A lightweight, terminal-based Personal Expense & Budget Tracker written in pure Python. It
+requires zero third-party packages, stores records persistently using local comma-separated
+values (csv), performs input validation, computes category-wise summaries, and alerts users
+when their monthly spending exceeds an allocated threshold.
+PART 2: Step-by-Step Implementation Guide
+Follow these sequential steps on your computer:
+Step 1: Create a dedicated local folder named "expense-cli-tracker".
+Step 2: Inside this folder, create two files: "main.py" and
+"README.md".
+Step 3: Copy and save the source code into "main.py".
+Step 4: Copy and save the setup documentation into "README.md".
+Step 5: Test the program in your terminal by running: python main.py
+Step 6: Create a new repository on GitHub (Make sure visibility is set
+to PUBLIC).
+Step 7: Push both files to GitHub.
+Step 8: Copy the exact root repository URL and submit it on the
+platform.
+PART 3: Source Code (main.py)
+This code uses clean variable naming, robust validation, and built-in Python libraries (csv,
+datetime, os, sys). It contains natural student-style inline comments.
+"""
+Personal Expense & Budget CLI Manager
+Author: Student Submission
+Course: Python Essentials
+"""
+import csv
+from datetime import datetime
+import os
+import sys
+DATA_FILE = "expenses.csv"
+BUDGET_FILE = "budget.txt"
+CSV_COLUMNS = ["id", "date", "category", "amount", "description"]
+VALID_CATEGORIES = ["Food", "Transport", "Books", "Entertainment",
+"Bills", "Other"]
+def ensure_data_files():
+"""Create CSV file and budget configuration if they don't
+exist."""
+if not os.path.exists(DATA_FILE):
+with open(DATA_FILE, mode="w", newline="", encoding="utf-8")
+as f:
+writer = csv.writer(f)
+writer.writerow(CSV_COLUMNS)
+if not os.path.exists(BUDGET_FILE):
+with open(BUDGET_FILE, mode="w", encoding="utf-8") as f:
+f.write("5000.00") # Default monthly budget limit
+def get_monthly_budget():
+"""Read the current budget limit from file."""
+try:
+with open(BUDGET_FILE, mode="r", encoding="utf-8") as f:
+val = float(f.read().strip())
+return val
+except (ValueError, FileNotFoundError):
+return 5000.00
+def update_monthly_budget():
+"""Set a new monthly spending target."""
+print("\n--- Update Monthly Budget ---")
+current = get_monthly_budget()
+print(f"Current Monthly Limit: Rs. {current:.2f}")
+raw_input_val = input("Enter new monthly budget limit (Rs.):
+").strip()
+try
+new_val = float(raw_input_val)
+if new_val <= 0:
+print("[Warning] Budget must be greater than zero.")
+return
+with open(BUDGET_FILE, mode="w", encoding="utf-8") as f:
+f.write(f"{new_val:.2f}")
+print(f"[Success] Monthly budget updated to Rs.
+{new_val:.2f}")
+except ValueError:
+print("[Error] Please enter a valid numerical figure.")
+def read_all_expenses():
+"""Read and return all expense items from the CSV."""
+records = []
+if os.path.exists(DATA_FILE):
+with open(DATA_FILE, mode="r", encoding="utf-8") as f:
+reader = csv.DictReader(f)
+for row in reader:
+records.append(row)
+return records
+def get_next_record_id(records):
+"""Compute the next integer ID for entry indexing."""
+if not records:
+return 1
+existing_ids = [int(r["id"]) for r in records if
+r["id"].isdigit()]
+return max(existing_ids, default=0) + 1
+def add_expense():
+"""Prompt user and record a new expenditure."""
+print("\n--- Log New Expense ---")
+records = read_all_expenses()
+Amount validation
+raw_amount = input("Enter amount spent (Rs.): ").strip()
+try:
+amount = float(raw_amount)
+if amount <= 0:
+print("[Error] Expense amount must be positive.")
+return
+except ValueError:
+print("[Error] Invalid amount format.")
+return
+Category selection
+print("\nAvailable Categories:")
+for idx, cat in enumerate(VALID_CATEGORIES, 1):
+print(f" {idx}. {cat}")
+cat_choice = input(f"Select category (1-{len(VALID_CATEGORIES)}):
+").strip()
+if cat_choice.isdigit() and 1 <= int(cat_choice) <=
+len(VALID_CATEGORIES):
+selected_category = VALID_CATEGORIES[int(cat_choice) - 1]
+else:
+print("[Warning] Invalid selection. Categorizing under
+'Other'.")
+selected_category = "Other"
+Description
+desc = input("Short description / note: ").strip()
+if not desc:
+desc = "No description"
+Date handling (Default to today)
+date_prompt = input("Enter date (YYYY-MM-DD) or press ENTER for
+today: ").strip()
+if not date_prompt:
+entry_date = datetime.now().strftime("%Y-%m-%d")
+else:
+try:
+datetime.strptime(date_prompt, "%Y-%m-%d")
+entry_date = date_prompt
+except ValueError:
+print("[Error] Date format must be YYYY-MM-DD. Aborting
+entry.")
+return
+new_id = get_next_record_id(records)
+new_entry = {
+"id": str(new_id),
+"date": entry_date,
+"category": selected_category,
+"amount": f"{amount:.2f}",
+"description": desc.replace(",", " ") # avoid CSV splitting
+issue
+}
+with open(DATA_FILE, mode="a", newline="", encoding="utf-8") as f:
+writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
+writer.writerow(new_entry)
+print(f"[Success] Expense #{new_id} saved successfully.")
+Check budget threshold after addition
+check_budget_status()
+def view_all_expenses():
+"""Print all logged expenses in a structured ASCII table."""
+records = read_all_expenses()
+print("\n--- Expense Ledger ---")
+if not records:
+print("No expenses logged yet.")
+return
+row_format = "{:<5} {:<12} {:<15} {:<12} {:<25}"
+print("-" * 72)
+print(row_format.format("ID", "Date", "Category", "Amount (Rs)",
+"Description"))
+print("-" * 72)
+grand_total = 0.0
+for r in records:
+amt = float(r["amount"])
+grand_total += amt
+print(row_format.format(
+r["id"],
+r["date"],
+r["category"],
+f"{amt:.2f}",
+r["description"][:23]
+))
+print("-" * 72)
+print(f"Total Cumulative Spend: Rs. {grand_total:.2f}")
+def delete_expense():
+"""Remove a record by its identifier."""
+print("\n--- Delete An Expense Entry ---")
+entry_id = input("Enter the ID of the expense to delete:
+").strip()
+records = read_all_expenses()
+filtered = [r for r in records if r["id"] != entry_id]
+if len(filtered) == len(records):
+print(f"[Not Found] No entry found with ID #{entry_id}.")
+return
+with open(DATA_FILE, mode="w", newline="", encoding="utf-8") as f:
+writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
+writer.writeheader()
+writer.writerows(filtered)
+print(f"[Success] Record #{entry_id} has been removed.")
+def check_budget_status():
+"""Calculate current month's expenses and compare against
+budget."""
+records = read_all_expenses()
+budget = get_monthly_budget()
+current_month_prefix = datetime.now().strftime("%Y-%m")
+current_month_spent = 0.0
+for r in records:
+if r["date"].startswith(current_month_prefix):
+current_month_spent += float(r["amount"])
+print("\n>>> Monthly Budget Check <<<")
+print(f"Current Month: {datetime.now().strftime('%B %Y')}")
+print(f"Budget Limit : Rs. {budget:.2f}")
+print(f"Total Spent : Rs. {current_month_spent:.2f}")
+if current_month_spent > budget:
+over = current_month_spent - budget
+print(f"[ALERT] You have exceeded your monthly budget by Rs.
+{over:.2f}!")
+else:
+remaining = budget - current_month_spent
+print(f"[OK] You are within budget. Rs. {remaining:.2f}
+remaining.")
+def generate_category_summary():
+"""Summarize expenses by category with percentages."""
+records = read_all_expenses()
+print("\n--- Category-Wise Expenditure Breakdown ---")
+if not records:
+print("No records available to summarize.")
+return
+cat_totals = {}
+total_spent = 0.0
+for r in records:
+c = r["category"]
+amt = float(r["amount"])
+cat_totals[c] = cat_totals.get(c, 0.0) + amt
+total_spent += amt
+print("-" * 50)
+print("{:<18} {:<15} {:<10}".format("Category", "Total (Rs)",
+"Share (%)"))
+print("-" * 50)
+for cat, total in sorted(cat_totals.items(), key=lambda item:
+item[1], reverse=True):
+percentage = (total / total_spent) * 100 if total_spent > 0
+else 0
+print("{:<18} {:<15} {:<10}".format(
+cat,
+f"Rs. {total:.2f}",
+f"{percentage:.1f}%"
+))
+print("-" * 50)
+print(f"Overall Total: Rs. {total_spent:.2f}")
+def display_menu():
+"""Print the interactive options menu."""
+print("\n" + "=" * 45)
+print(" PERSONAL EXPENSE & BUDGET MANAGER (CLI) ")
+print("=" * 45)
+print("1. View All Expenses")
+print("2. Log New Expense")
+print("3. View Category-Wise Summary")
+print("4. Check Monthly Budget Status")
+print("5. Set / Update Monthly Budget")
+print("6. Delete Expense Record")
+print("7. Exit")
+print("=" * 45)
+def main():
+"""Program execution driver loop."""
+ensure_data_files()
+while True:
+display_menu()
+choice = input("Enter choice (1-7): ").strip()
+if choice == "1":
+view_all_expenses()
+elif choice == "2":
+add_expense()
+elif choice == "3":
+generate_category_summary()
+elif choice == "4":
+check_budget_status()
+elif choice == "5":
+update_monthly_budget()
+elif choice == "6":
+delete_expense()
+elif choice == "7":
+print("\nThank you for using Expense Tracker. Goodbye!")
+sys.exit(0)
+else:
+print("[Error] Invalid option. Please select a valid
+number (1-7).")
+if name == "main":
+main()
+PART 4: Repository Documentation (README.md)
+Save this exact markdown text inside README.md at the root level of your project:
+Personal Expense & Budget CLI Manager
+A lightweight, terminal-based personal finance utility developed in
+Python. It provides command-line tracking of personal expenditures,
+categorizes spending, and monitors monthly spending against an
+allocated budget limit.
+1. Features
+• Ledger Operations: Add, inspect, categorize, and delete daily
+expense records.
+• Budget Monitoring: Configure a monthly spending allowance and
+receive alert notifications when exceeding limits.
+• Spending Analytics: Computes category breakdown and percentage
+distribution.
+• Persistent Storage: Saves records cleanly in local flat files
+(expenses.csv and budget.txt).
+• Zero External Dependencies: Built strictly with standard Python
+libraries.
+2. Requirements
+• Python 3.8 or higher.
+• No external packages (pip install is not required).
+
+───
+
+3. Setup & Execution Instructions
+Step A: Clone the Repository
+bash
+git clone
+[https://github.com/](https://github.com/)<your-username>/<repo-name>.
+git
+cd <repo-name>
+
+Step B: Run the Application
+Windows:
+bash
+python main.py
+
+macOS / Linux:
+bash
+python3 main.py
+
+
+───
+
+4. File Structure
+text
+.
+├── main.py # Core application script
+├── README.md # Setup documentation
+├── expenses.csv # Automatically generated expenditure database
+└── budget.txt # Stored budget limit configuration
+
+PART 5: Submission Checklist
+Before you trigger the evaluation on the platform, verify each item:
+Verification Item Requirement Your Check
+Repository Visibility Must be Public (Settings >
+Danger Zone > Change
+visibility).
+[ ] Done
+Verification Item Requirement Your Check
+URL Format Must be strictly
+[https://github.com/](https://gith
+ub.com/){username}/{repo-nam
+e}.
+[ ] Done
+No Deep Paths Ensure NO /tree/main/ or /blob/
+in the URL.
+[ ] Done
+Execution Test Open command prompt and
+verify python main.py runs
+without error.
+[ ] Done
+Root README README.md must sit in the
+root directory alongside
+main.py.
+[ ] Done
+
